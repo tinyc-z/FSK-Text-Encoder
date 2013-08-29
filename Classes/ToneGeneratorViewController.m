@@ -27,7 +27,7 @@ OSStatus RenderTone(
 	// Fixed amplitude is good enough for our purposes
 	const double amplitude = 0.25;
     
-    
+//    double sliderValue=2200;
 	// Get the tone parameters out of the view controller
 	ToneGeneratorViewController *viewController =
 		(ToneGeneratorViewController *)inRefCon;
@@ -69,11 +69,12 @@ void ToneInterruptionListener(void *inClientData, UInt32 inInterruptionState)
 @synthesize frequencySlider;
 @synthesize playButton;
 @synthesize frequencyLabel;
-@synthesize textinput;
+@synthesize textinput, useCustomButton;
 
 
 - (IBAction)useCustom:(id)sender {
     [self startCustomSequence];
+    [self.useCustomButton setHidden:YES];
 }
 
 - (IBAction)startSequence:(id)sender {
@@ -99,13 +100,13 @@ void ToneInterruptionListener(void *inClientData, UInt32 inInterruptionState)
     } else {
         NSLog(@"failed to read in data file %@", dataFile);
     }
-    NSLog(@"Count of freq Data: %i", [textFreqData count]);
+    NSLog(@"Count of freq Data: %i", [freqData count]);
     
     
     myCounter=0;
     myChirpTimer = [NSTimer scheduledTimerWithTimeInterval:1.84/20
                                                     target:self
-                                                  selector:@selector(updateTimerChirp)
+                                                  selector:@selector(updateChirp)
                                                   userInfo:nil
                                                    repeats:YES];
 
@@ -116,7 +117,7 @@ void ToneInterruptionListener(void *inClientData, UInt32 inInterruptionState)
 - (void)startCustomSequence {
     
     NSString *testString=textinput.text;
-    NSData *stringData=[testString dataUsingEncoding:NSASCIIStringEncoding];
+    NSData *stringData =[[NSData alloc] initWithData:[testString dataUsingEncoding:NSASCIIStringEncoding]];
     //    NSLog(@"%i",[test bytes]);
     NSLog([stringData description]); //HEX output to check against
     const unsigned char *dataBuffer = (const unsigned char *)[stringData bytes];
@@ -137,10 +138,34 @@ void ToneInterruptionListener(void *inClientData, UInt32 inInterruptionState)
                                               repeats:YES];
 }
 
+-(void)updateChirp{
+    if(myCounter==0){
+        [self startPlaying];
+    }
+    if(myCounter>=[freqData count]-1){
+        [myChirpTimer invalidate];
+        myCounter=0;
+        [self stopPlaying];
+        return;
+    }
+    NSNumber *temp=[freqData objectAtIndex:myCounter];
+    frequency= temp.doubleValue;
+    NSLog(@"%f",frequency);
+    myCounter++;
+    
+    
+}
 
 -(void)updateTimer{
     if(myCounter==0){
         [self startPlaying];
+    }
+    if(myCounter>=[textFreqData count]){
+        [myTimer invalidate];
+        myCounter=0;
+        [self stopPlaying];
+        [self.useCustomButton setHidden:NO];
+        return;
     }
     NSNumber *temp=[textFreqData objectAtIndex:myCounter];
     double numDbl= temp.doubleValue;
@@ -149,31 +174,13 @@ void ToneInterruptionListener(void *inClientData, UInt32 inInterruptionState)
     frequency=numDbl*(10000.0f-sliderValue)/15.0f+sliderValue;
     NSLog(@"%f",frequency);
     myCounter++;
-    if(myCounter>=[textFreqData count]-1){
-        [myTimer invalidate];
-        myCounter=0;
-        [self stopPlaying];
-    }
+
 
 }
 
 
 
--(void)updateTimerChirp{
-    if(myCounter==0){
-        [self startPlaying];
-    }
-    NSNumber *temp=[freqData objectAtIndex:myCounter];
-    frequency= temp.doubleValue;
-    NSLog(@"%f",frequency);
-    myCounter++;
-    if(myCounter>=[freqData count]-1){
-        [myChirpTimer invalidate];
-        myCounter=0;
-        [self stopPlaying];
-    }
-    
-}
+
 
 
 
@@ -264,7 +271,7 @@ void ToneInterruptionListener(void *inClientData, UInt32 inInterruptionState)
 	if (toneUnit)
 	{
         [self stopPlaying];
-		[selectedButton setTitle:NSLocalizedString(@"Play", nil) forState:0];
+		[selectedButton setTitle:NSLocalizedString(@"Test", nil) forState:0];
 	}
 	else
 	{
@@ -307,6 +314,7 @@ void ToneInterruptionListener(void *inClientData, UInt32 inInterruptionState)
 
 - (void)dealloc {
     [textinput release];
+    [useCustomButton release];
     [super dealloc];
 }
 @end

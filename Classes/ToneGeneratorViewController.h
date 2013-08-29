@@ -40,6 +40,7 @@
 
 
 @property (retain, nonatomic) IBOutlet UITextField *textinput;
+@property (retain, nonatomic) IBOutlet UIButton *useCustomButton;
 
 - (IBAction)useCustom:(id)sender;
 
